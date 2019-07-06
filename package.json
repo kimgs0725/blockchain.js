@@ -8,11 +8,13 @@
     "ip": "^1.1.5",
     "node-fetch": "^2.6.0",
     "node-ip": "^0.1.2",
+    "node-rsa": "^1.0.5",
     "websocket": "^1.0.29"
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "genkey": "node scripts/genkey.js"
   },
   "keywords": [],
   "author": "",
