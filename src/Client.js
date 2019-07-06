@@ -8,19 +8,19 @@ class Client {
 
     connect = () => {
         const client = new WebSocketClient();
-        client.on('connectFailed', error => {
-            utils.log('Connection Error: ' + error.toString());
+        client.on("connectFailed", error => {
+            utils.log("Client", "Connection Error: " + error.toString());
         });
 
-        client.on('connect', connection => {
-            utils.log('Connected');
-            connection.on('error', (error) => {
-                utils.log("Error: " + error.toString());
+        client.on("connect", connection => {
+            utils.log("Client", "Connected (" + connection.remoteAddress + ")");
+            connection.on("error", (error) => {
+                utils.log("Client", "Error: " + error.toString());
             });
-            connection.on('close', () => {
-                utils.log('Connection Closed');
+            connection.on("close", () => {
+                utils.log("Client", "Connection Closed");
             });
-            connection.on('message', this._onMessage);
+            connection.on("message", this._onMessage);
         });
 
         client.connect(this.hostname, "chain");
@@ -28,7 +28,7 @@ class Client {
 
     _onMessage = message => {
         const msg = JSON.parse(message.utf8Data);
-        utils.log("Client received: " + msg);
+        utils.log("Client", "Received: " + msg);
     };
 }
 
