@@ -1,5 +1,6 @@
 const http = require("http");
 const WebSocketServer = require("websocket").server;
+const NodeRSA = require("node-rsa");
 const utils = require("./utils");
 
 class Server {
