@@ -16,19 +16,21 @@ class Client {
             utils.log("Client", "Connection Error: " + error.toString());
         });
 
-        this.client.on("connect", connection => {
-            utils.log("Client", "Connected (" + connection.remoteAddress + ")");
-            connection.on("error", (error) => {
-                utils.log("Client", "Error: " + error.toString());
-            });
-            connection.on("close", () => {
-                utils.log("Client", "Connection closed");
-            });
-            connection.on("message", this._onMessage);
-            this._sendMessage(connection);
-        });
+        this.client.on("connect", this._onConnect);
 
-        this.client.connect(this.hostname, "chain");
+        this.client.connect(this.hostname, "dnext-chain");
+    };
+
+    _onConnect = connection => {
+        utils.log("Client", "Connected (" + connection.remoteAddress + ")");
+        connection.on("error", (error) => {
+            utils.log("Client", "Error: " + error.toString());
+        });
+        connection.on("close", () => {
+            utils.log("Client", "Connection closed");
+        });
+        connection.on("message", this._onMessage);
+        this._sendMessage(connection);
     };
 
     _sendMessage = connection => {

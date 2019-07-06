@@ -1,33 +1,30 @@
 const http = require("http");
 const WebSocketServer = require("websocket").server;
-const NodeRSA = require("node-rsa");
 const utils = require("./utils");
 
 class Server {
-    constructor() {
-        this.httpServer = http.createServer((request, response) => {
+    start = () => {
+        const httpServer = http.createServer((request, response) => {
             utils.log("Server", request.url);
             response.writeHead(404);
             response.end();
         });
-        this.httpServer.listen(43210, () => {
+        httpServer.listen(43210, () => {
             utils.log("Server", "Listening on port 43210");
         });
-    }
 
-    start = () => {
         this.webSocket = new WebSocketServer({
-            httpServer: this.httpServer,
+            httpServer: httpServer,
             autoAcceptConnections: false
         });
-        this.webSocket.on("request", request => {
-            const connection = request.accept("chain", request.origin);
-            utils.log("Server", "Connection accepted (" + request.remoteAddress + ")");
-            connection.on("message", this._onMessage);
-            connection.on("close", () => {
-                utils.log("Server", "Disconnected (" + connection.remoteAddress + ")");
-            });
-        });
+        this.webSocket.on("request", this._onRequest);
+    };
+
+    _onRequest = request => {
+        const connection = request.accept("dnext-chain", request.origin);
+        utils.log("Server", "Connection accepted (" + request.remoteAddress + ")");
+        connection.on("message", this._onMessage);
+        connection.on("close", this._onClose);
     };
 
     _onMessage = message => {
@@ -40,6 +37,10 @@ class Server {
         const publicKey = Buffer.from(data.publicKey, "hex");
         key.importKey(publicKey, "pkcs8-public-der");
         return key.decryptPublic(Buffer.from(data.cipher, "hex")).toString("utf8");
+    };
+
+    _onClose = connection => {
+        utils.log("Server", "Disconnected (" + connection.remoteAddress + ")");
     };
 }
 module.exports = Server;
