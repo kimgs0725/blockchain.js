@@ -30,8 +30,15 @@ class Server {
     };
 
     _onMessage = message => {
-        const msg = JSON.parse(message.utf8Data);
-        utils.log("Server", "Received: " + msg);
+        const data = JSON.parse(message.utf8Data);
+        utils.log("Server", "Received: " + this._decrypt(data));
+    };
+
+    _decrypt = data => {
+        const key = new NodeRSA();
+        const publicKey = Buffer.from(data.publicKey, "hex");
+        key.importKey(publicKey, "pkcs8-public-der");
+        return key.decryptPublic(Buffer.from(data.cipher, "hex")).toString("utf8");
     };
 }
 module.exports = Server;
