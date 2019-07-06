@@ -18,7 +18,7 @@ class Client {
                 utils.log("Client", "Error: " + error.toString());
             });
             connection.on("close", () => {
-                utils.log("Client", "Connection Closed");
+                utils.log("Client", "Connection closed");
             });
             connection.on("message", this._onMessage);
         });

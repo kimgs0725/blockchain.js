@@ -21,7 +21,7 @@ class Server {
         });
         this.webSocket.on("request", request => {
             const connection = request.accept("chain", request.origin);
-            utils.log("Server", "Connection accepted");
+            utils.log("Server", "Connection accepted (" + request.remoteAddress + ")");
             connection.on("message", this._onMessage);
             connection.on("close", () => {
                 utils.log("Server", "Disconnected (" + connection.remoteAddress + ")");
