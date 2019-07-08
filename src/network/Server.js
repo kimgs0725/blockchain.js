@@ -1,7 +1,10 @@
 const http = require("http");
 const WebSocketServer = require("websocket").server;
-const NodeRSA = require("node-rsa");
-const utils = require("./utils");
+const Blockchain = require("../Blockchain");
+const Block = require("../block/Block");
+const Tx = require("../tx/Tx");
+const TxPool = require("../tx/TxPool");
+const utils = require("../utils");
 
 class Server {
     start = () => {
@@ -33,15 +36,30 @@ class Server {
     };
 
     _onMessage = message => {
+        utils.log("Server", "Received: " + message.utf8Data);
         const data = JSON.parse(message.utf8Data);
-        utils.log("Server", "Received: " + this._decrypt(data));
+        if (data.type === "block") {
+            this._onReceiveBlock(data.value);
+        } else if (data.type === "tx") {
+            this._onReceiveTx(data.value);
+        }
     };
 
-    _decrypt = data => {
-        const key = new NodeRSA();
-        const publicKey = Buffer.from(data.publicKey, "hex");
-        key.importKey(publicKey, "pkcs8-public-der");
-        return key.decryptPublic(Buffer.from(data.cipher, "hex")).toString("utf8");
+    _onReceiveBlock = value => {
+        const block = new Block(value.prevHash, value.difficulty, value.timestamp, value.nonce, value.txs);
+        if (block.validate()) {
+            const blocks = Blockchain.instance.blocks;
+            if (blocks[blocks.length - 1].hash() === block.prevHash) {
+                blocks.push(block);
+            }
+        }
+    };
+
+    _onReceiveTx = value => {
+        const tx = new Tx(value.inputs, value.outputs);
+        if (tx.validate()) {
+            TxPool.instance.txs[tx.hash()] = tx;
+        }
     };
 
     _onClose = connection => {

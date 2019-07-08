@@ -2,6 +2,7 @@
   "name": "dnext-chain",
   "main": "src/index.js",
   "dependencies": {
+    "jshashes": "^1.0.7",
     "local-ipv4-address": "0.0.2",
     "node-fetch": "^2.6.0",
     "node-rsa": "^1.0.5",
