@@ -1,7 +1,5 @@
 {
-  "name": "p2p-network",
-  "version": "1.0.0",
-  "description": "",
+  "name": "dnext-chain",
   "main": "src/index.js",
   "dependencies": {
     "local-ipv4-address": "0.0.2",
@@ -9,12 +7,9 @@
     "node-rsa": "^1.0.5",
     "websocket": "^1.0.29"
   },
-  "devDependencies": {},
   "scripts": {
     "start": "node src/index.js",
     "genkey": "node scripts/genkey.js"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC"
 }

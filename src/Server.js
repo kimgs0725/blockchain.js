@@ -22,10 +22,14 @@ class Server {
     };
 
     _onRequest = request => {
-        const connection = request.accept("dnext-chain", request.origin);
-        utils.log("Server", "Connection accepted (" + request.remoteAddress + ")");
-        connection.on("message", this._onMessage);
-        connection.on("close", this._onClose);
+        try {
+            const connection = request.accept("dnext-chain", request.origin);
+            utils.log("Server", "Connection accepted (" + request.remoteAddress + ")");
+            connection.on("message", this._onMessage);
+            connection.on("close", this._onClose);
+        } catch (e) {
+            utils.log("Server", "Accept error: " + e.message);
+        }
     };
 
     _onMessage = message => {

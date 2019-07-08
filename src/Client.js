@@ -49,7 +49,7 @@ class Client {
     };
 
     _onMessage = message => {
-        const msg = JSON.parse(message.utf8Data);
+        const msg = message.utf8Data;
         utils.log("Client", "Received: " + msg);
     };
 }
