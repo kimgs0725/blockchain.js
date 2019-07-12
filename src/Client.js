@@ -34,7 +34,7 @@ class Client {
         connection.on("message", this._onMessage);
         this.connection = connection;
         if (this.listeners["connected"]) {
-            this.listeners["connected"](this);
+            this.listeners["connected"](connection);
         }
     };
 
@@ -42,18 +42,7 @@ class Client {
         const data = JSON.parse(message.utf8Data);
         utils.log("Client", "Received: " + message.utf8Data);
         if (this.listeners[data.type]) {
-            this.listeners[data.type](this, data.value);
-        }
-    };
-
-    sendMessage = (type, value) => {
-        if (this.connection && this.connection.connected) {
-            const data = {
-                type: type,
-                value: value
-            };
-            this.connection.sendUTF(JSON.stringify(data));
-            utils.log("Client", "Sent: " + JSON.stringify(data));
+            this.listeners[data.type](this.connection, data.value);
         }
     };
 }

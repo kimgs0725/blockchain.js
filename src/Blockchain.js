@@ -36,6 +36,17 @@ class Blockchain {
         }
     };
 
+    sendMessage = (connection, type, value) => {
+        if (connection.connected) {
+            const data = {
+                type: type,
+                value: value
+            };
+            connection.sendUTF(JSON.stringify(data));
+            utils.log("Blockchain", "Sent: " + JSON.stringify(data) + " (" + connection.remoteAddress + ")");
+        }
+    };
+
     _startServer = () => {
         this.server = new Server();
         this.server.on("getheaders", this._onGetheaders);
@@ -51,22 +62,22 @@ class Blockchain {
         client.on("headers", this._onHeaders);
         client.on("getdata", this._onGetdata);
         client.on("block", this._onBlock);
-        client.on("connected", () => {
-            client.sendMessage("getheaders", "");
+        client.on("connected", connection => {
+            this.sendMessage(connection, "getheaders", "");
         });
         client.connect();
         return client;
     };
 
-    _onGetheaders = messenger => {
+    _onGetheaders = connection => {
         const headers = [];
         for (const block of this.blocks) {
             headers.push(block.header());
         }
-        messenger.sendMessage("headers", headers);
+        this.sendMessage(connection, "headers", headers);
     };
 
-    _onHeaders = (messenger, data) => {
+    _onHeaders = (connection, data) => {
         if (this.initializing) {
             if (data.length >= this.blocks) {
                 this.blocks = [];
@@ -81,17 +92,17 @@ class Blockchain {
         }
     };
 
-    _onGetdata = (messenger, invs) => {
+    _onGetdata = (connection, invs) => {
         for (const inv of invs) {
             for (const block of this.blocks) {
                 if (block.hash === inv.hash) {
-                    messenger.sendMessage("block", block);
+                    this.sendMessage(connection, "block", block);
                 }
             }
         }
     };
 
-    _onBlock = (messenger, data) => {
+    _onBlock = (connection, data) => {
         const newBlock = new Block(data.prevHash, data.merkleRoot, data.difficulty, data.timestamp, data.nonce, data.txs);
         if (newBlock.validate()) {
             const lastBlock = this.blocks[this.blocks.length - 1];
@@ -105,7 +116,7 @@ class Blockchain {
                             hash: block.hash()
                         });
                     }
-                    messenger.sendMessage("getdata", invs);
+                    this.sendMessage(connectiohn, "getdata", invs);
                     this.initializing = false;
                 }
             } else if (this.initializing) {

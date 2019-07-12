@@ -32,35 +32,23 @@ class Server {
         try {
             const connection = request.accept("dnext-chain", request.origin);
             utils.log("Server", "Connection accepted (" + request.remoteAddress + ")");
-            connection.on("message", this._onMessage);
+            connection.on("message", message => this._onMessage(connection, message));
             connection.on("close", this._onClose);
-            this.connection = connection;
         } catch (e) {
             utils.log("Server", "Accept error: " + e.message);
         }
     };
 
-    _onMessage = message => {
+    _onMessage = (connection, message) => {
         const data = JSON.parse(message.utf8Data);
         utils.log("Server", "Received: " + message.utf8Data);
         if (this.listeners[data.type]) {
-            this.listeners[data.type](this, data.value);
+            this.listeners[data.type](connection, data.value);
         }
     };
 
     _onClose = (reason, description) => {
         utils.log("Server", "Disconnected (" + reason + ", " + description + ")");
-    };
-
-    sendMessage = (type, value) => {
-        if (this.connection && this.connection.connected) {
-            const data = {
-                type: type,
-                value: value
-            };
-            this.connection.sendUTF(JSON.stringify(data));
-            utils.log("Server", "Sent: " + JSON.stringify(data));
-        }
     };
 }
 
