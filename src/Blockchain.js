@@ -57,16 +57,15 @@ class Blockchain {
         return client;
     };
 
-    _onGetheaders = connection => {
+    _onGetheaders = messenger => {
         const headers = [];
         for (const block of this.blocks) {
             headers.push(block.header());
         }
-        const data = {type: "headers", value: headers};
-        connection.sendUTF(JSON.stringify(data));
+        messenger.sendMessage("headers", headers);
     };
 
-    _onHeaders = (connection, headers) => {
+    _onHeaders = (messenger, headers) => {
         if (this.initializing) {
             if (headers.length >= this.blocks) {
                 this.blocks = headers;
@@ -74,18 +73,17 @@ class Blockchain {
         }
     };
 
-    _onGetdata = (connection, invs) => {
+    _onGetdata = (messenger, invs) => {
         for (const inv of invs) {
             for (const block of this.blocks) {
                 if (block.hash === inv.hash) {
-                    const data = {type: "block", value: block};
-                    connection.sendUTF(JSON.stringify(data));
+                    messenger.sendMessage("block", block);
                 }
             }
         }
     };
 
-    _onBlock = (connection, newBlock) => {
+    _onBlock = (messenger, newBlock) => {
         if (newBlock.validate()) {
             const lastBlock = this.blocks[this.blocks.length - 1];
             if (lastBlock.hash() === newBlock.prevHash) {
@@ -98,8 +96,7 @@ class Blockchain {
                             hash: block.hash()
                         });
                     }
-                    const data = {type: "getdata", value: invs};
-                    connection.sendUTF(JSON.stringify(data));
+                    messenger.sendMessage("getdata", invs);
                     this.initializing = false;
                 }
             } else if (this.initializing) {

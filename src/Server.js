@@ -32,40 +32,35 @@ class Server {
         try {
             const connection = request.accept("dnext-chain", request.origin);
             utils.log("Server", "Connection accepted (" + request.remoteAddress + ")");
-            connection.on("message", message => this._onMessage(message, connection));
+            connection.on("message", this._onMessage);
             connection.on("close", this._onClose);
+            this.connection = connection;
         } catch (e) {
             utils.log("Server", "Accept error: " + e.message);
         }
     };
 
-    _onMessage = (message, connection) => {
+    _onMessage = message => {
         const data = JSON.parse(message.utf8Data);
         utils.log("Server", "Received: " + message.utf8Data);
         if (this.listeners[data.type]) {
-            this.listeners[data.type](connection, data.value);
-        }
-    };
-
-    _onHeaders = value => {
-        const headers = [];
-        for (const v of value) {
-            headers.push(new Block(v.prevHash, v.merkleRoot, v.difficulty, v.timestamp, v.nonce));
-        }
-        if (this.listeners["headers"]) {
-            this.listeners["headers"](headers);
-        }
-    };
-
-    _onBlock = value => {
-        const block = new Block(value.prevHash, value.merkleRoot, value.difficulty, value.timestamp, value.nonce, value.txs);
-        if (this.listeners["block"]) {
-            this.listeners["block"](block);
+            this.listeners[data.type](this, data.value);
         }
     };
 
     _onClose = connection => {
         utils.log("Server", "Disconnected (" + connection.remoteAddress + ")");
+    };
+
+    sendMessage = (type, value) => {
+        if (this.connection.connected) {
+            const data = {
+                type: type,
+                value: value
+            };
+            this.connection.sendUTF(JSON.stringify(data));
+            utils.log("Server", "Sent: " + JSON.stringify(data));
+        }
     };
 }
 

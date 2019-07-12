@@ -31,10 +31,18 @@ class Client {
         connection.on("close", () => {
             utils.log("Client", "Connection closed");
         });
-        connection.on("message", message => this._onMessage(message, connection));
+        connection.on("message", this._onMessage);
         this.connection = connection;
         if (this.listeners["connected"]) {
-            this.listeners["connected"]();
+            this.listeners["connected"](this);
+        }
+    };
+
+    _onMessage = message => {
+        const data = JSON.parse(message.utf8Data);
+        utils.log("Client", "Received: " + message.utf8Data);
+        if (this.listeners[data.type]) {
+            this.listeners[data.type](this, data.value);
         }
     };
 
@@ -46,14 +54,6 @@ class Client {
             };
             this.connection.sendUTF(JSON.stringify(data));
             utils.log("Client", "Sent: " + JSON.stringify(data));
-        }
-    };
-
-    _onMessage = (message, connection) => {
-        const data = JSON.parse(message.utf8Data);
-        utils.log("Server", "Received: " + message.utf8Data);
-        if (this.listeners[data.type]) {
-            this.listeners[data.type](connection, data.value);
         }
     };
 }
