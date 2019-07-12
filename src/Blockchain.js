@@ -50,8 +50,10 @@ class Blockchain {
         client.on("headers", this._onHeaders);
         client.on("getdata", this._onGetdata);
         client.on("block", this._onBlock);
+        client.on("connected", () => {
+            client.sendMessage("getheaders", null);
+        });
         client.connect();
-        client.sendMessage("getheaders", null);
         return client;
     };
 

@@ -33,6 +33,9 @@ class Client {
         });
         connection.on("message", message => this._onMessage(message, connection));
         this.connection = connection;
+        if (this.listeners["connected"]) {
+            this.listeners["connected"]();
+        }
     };
 
     sendMessage = (type, value) => {
