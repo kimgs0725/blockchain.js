@@ -37,7 +37,7 @@ class Blockchain {
     };
 
     sendMessage = (connection, type, value) => {
-        if (connection.connected) {
+        if (connection && connection.connected) {
             const data = {
                 type: type,
                 value: value
