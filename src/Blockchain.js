@@ -70,6 +70,11 @@ class Blockchain {
         }
     };
 
+    _addBlock = block => {
+        this.blocks.push(block);
+        utils.log("Blockchain", "Block Height: " + this.blocks.length);
+    };
+
     _onGetheaders = connection => {
         const headers = [];
         for (const block of this.blocks) {
@@ -98,12 +103,14 @@ class Blockchain {
     };
 
     _onBlock = (connection, data) => {
-        const newBlock = new Block(data.prevHash, data.merkleRoot, data.difficulty, data.timestamp, data.nonce, data.txs);
+        const newBlock = Block.from(data);
         if (newBlock.validate()) {
             const lastBlock = this.blocks[this.blocks.length - 1];
             if (lastBlock.hash() === newBlock.prevHash) {
-                this.blocks.push(newBlock);
+                this._addBlock(newBlock);
                 if (this.initializing) {
+                    this.initializing = false;
+                    utils.log("Blockchain", "Finished downloading headers");
                     const invs = [];
                     for (const block of this.blocks) {
                         invs.push({
@@ -112,9 +119,7 @@ class Blockchain {
                         });
                     }
                     this._sendMessage(connection, "getdata", invs);
-                    this.initializing = false;
                     this.startMining();
-                    utils.log("Blockchain", "Finished downloading headers");
                 } else {
                     this.stopMining();
                     this.startMining();
