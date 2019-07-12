@@ -45,6 +45,17 @@ class Client {
             this.listeners[data.type](this.connection, data.value);
         }
     };
+
+    sendMessage = (type, value) => {
+        if (this.connection && this.connection.connected) {
+            const data = {
+                type: type,
+                value: value
+            };
+            this.connection.sendUTF(JSON.stringify(data));
+            utils.log("Client", "Sent: " + JSON.stringify(data) + "  to " + connection.remoteAddress);
+        }
+    };
 }
 
 module.exports = Client;

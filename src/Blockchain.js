@@ -36,15 +36,13 @@ class Blockchain {
         }
     };
 
-    sendMessage = (connection, type, value) => {
-        if (connection && connection.connected) {
-            const data = {
-                type: type,
-                value: value
-            };
-            connection.sendUTF(JSON.stringify(data));
-            utils.log("Blockchain", "Sent: " + JSON.stringify(data) + " (" + connection.remoteAddress + ")");
-        }
+    _sendMessage = (connection, type, data) => {
+       for (const client of this.clients) {
+           if (client.connection && client.connection.remoteAddress === connection.remoteAddress) {
+               client.sendMessage(type, data);
+               return;
+           }
+       }
     };
 
     _startServer = () => {
@@ -63,7 +61,7 @@ class Blockchain {
         client.on("getdata", this._onGetdata);
         client.on("block", this._onBlock);
         client.on("connected", connection => {
-            this.sendMessage(connection, "getheaders", "");
+            client.sendMessage("getheaders", "");
         });
         client.connect();
         return client;
@@ -74,7 +72,7 @@ class Blockchain {
         for (const block of this.blocks) {
             headers.push(block.header());
         }
-        this.sendMessage(connection, "headers", headers);
+        this._sendMessage(connection, "headers", headers);
     };
 
     _onHeaders = (connection, data) => {
@@ -96,7 +94,7 @@ class Blockchain {
         for (const inv of invs) {
             for (const block of this.blocks) {
                 if (block.hash === inv.hash) {
-                    this.sendMessage(connection, "block", block);
+                    this._sendMessage(connection, "block", block);
                 }
             }
         }
@@ -116,7 +114,7 @@ class Blockchain {
                             hash: block.hash()
                         });
                     }
-                    this.sendMessage(connectiohn, "getdata", invs);
+                    this._sendMessage(connectiohn, "getdata", invs);
                     this.initializing = false;
                 }
             } else if (this.initializing) {
