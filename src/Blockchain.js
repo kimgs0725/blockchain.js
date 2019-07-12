@@ -38,12 +38,14 @@ class Blockchain {
         }
     };
 
-    _sendMessage = (connection, type, data) => {
-        for (const client of this.clients) {
-            if (client.connection && client.connection.remoteAddress === connection.remoteAddress) {
-                client.sendMessage(type, data);
-                return;
-            }
+    _sendMessage = (connection, type, value) => {
+        if (connection && connection.connected) {
+            const data = {
+                type: type,
+                value: value
+            };
+            connection.sendUTF(JSON.stringify(data));
+            utils.log("Server", "Sent: " + JSON.stringify(data) + "  to " + connection.remoteAddress);
         }
     };
 
@@ -62,7 +64,7 @@ class Blockchain {
         client.on("headers", this._onHeaders);
         client.on("getdata", this._onGetdata);
         client.on("block", this._onBlock);
-        client.on("connected", connection => {
+        client.on("connected", () => {
             client.sendMessage("getheaders", "");
         });
         client.connect();
