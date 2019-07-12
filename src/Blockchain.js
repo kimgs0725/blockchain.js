@@ -68,7 +68,7 @@ class Blockchain {
 
     _onHeaders = (messenger, data) => {
         if (this.initializing) {
-            if (headers.length >= this.blocks) {
+            if (data.length >= this.blocks) {
                 this.blocks = [];
                 this.blocks.push(new Block(
                     data.prevHash,
