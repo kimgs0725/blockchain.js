@@ -47,7 +47,7 @@ class Client {
     };
 
     sendMessage = (type, value) => {
-        if (this.connection.connected) {
+        if (this.connection && this.connection.connected) {
             const data = {
                 type: type,
                 value: value

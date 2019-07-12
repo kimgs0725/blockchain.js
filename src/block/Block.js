@@ -1,5 +1,5 @@
 const Hashes = require("jshashes");
-const utils = require("./utils");
+const utils = require("../utils");
 
 class Block {
     constructor(prevHash, merkleRoot, difficulty, timestamp, nonce = 0, txs = []) {

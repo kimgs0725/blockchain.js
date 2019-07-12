@@ -1,9 +1,10 @@
 const localIpV4Address = require("local-ipv4-address");
 
+const utils = require("./utils");
 const Bootstrap = require("./Bootstrap");
 const Server = require("./Server");
 const Client = require("./Client");
-const Block = require("./Block");
+const Block = require("./block/Block");
 
 class Blockchain {
     // 00000ce02084822c48ac519f9e9cce3ed9190014323021f2d4905ad524fe270d
@@ -21,7 +22,7 @@ class Blockchain {
     }
 
     start = async () => {
-        this.startServer();
+        this._startServer();
 
         this.clients = [];
         const bootstrap = new Bootstrap("http://192.168.35.2");
@@ -29,13 +30,13 @@ class Blockchain {
         const ipAddrs = await bootstrap.fetch();
         for (const addr of ipAddrs) {
             if (myAddr !== addr) {
-                const client = this.startClient(addr);
+                const client = this._startClient(addr);
                 this.clients.push(client);
             }
         }
     };
 
-    startServer = () => {
+    _startServer = () => {
         this.server = new Server();
         this.server.on("getheaders", this._onGetheaders);
         this.server.on("headers", this._onHeaders);
@@ -44,7 +45,7 @@ class Blockchain {
         this.server.start();
     };
 
-    startClient = addr => {
+    _startClient = addr => {
         const client = new Client("ws://" + addr + ":43210");
         client.on("getheaders", this._onGetheaders);
         client.on("headers", this._onHeaders);

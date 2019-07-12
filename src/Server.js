@@ -48,12 +48,12 @@ class Server {
         }
     };
 
-    _onClose = connection => {
-        utils.log("Server", "Disconnected (" + connection.remoteAddress + ")");
+    _onClose = (reason, description) => {
+        utils.log("Server", "Disconnected (" + reason + ", " + description + ")");
     };
 
     sendMessage = (type, value) => {
-        if (this.connection.connected) {
+        if (this.connection && this.connection.connected) {
             const data = {
                 type: type,
                 value: value
