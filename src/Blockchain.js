@@ -37,17 +37,6 @@ class Blockchain {
         }
     };
 
-    _sendMessage = (connection, type, value) => {
-        if (connection && connection.connected) {
-            const data = {
-                type: type,
-                value: value
-            };
-            connection.sendUTF(JSON.stringify(data));
-            utils.log("Server", "Sent: " + JSON.stringify(data) + "  to " + connection.remoteAddress);
-        }
-    };
-
     _startServer = () => {
         this.server = new Server();
         this.server.on("getheaders", this._onGetheaders);
@@ -68,6 +57,17 @@ class Blockchain {
         });
         client.connect();
         return client;
+    };
+
+    _sendMessage = (connection, type, value) => {
+        if (connection && connection.connected) {
+            const data = {
+                type: type,
+                value: value
+            };
+            connection.sendUTF(JSON.stringify(data));
+            utils.log("Server", "Sent: " + JSON.stringify(data) + "  to " + connection.remoteAddress);
+        }
     };
 
     _onGetheaders = connection => {
