@@ -68,7 +68,7 @@ class Blockchain {
 
     _onHeaders = (connection, headers) => {
         if (this.initializing) {
-            if (value.length >= this.blocks) {
+            if (headers.length >= this.blocks) {
                 this.blocks = headers;
             }
         }
