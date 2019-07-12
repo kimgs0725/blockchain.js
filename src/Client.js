@@ -1,10 +1,15 @@
 const WebSocketClient = require("websocket").client;
-const utils = require("../utils");
+const utils = require("./utils");
 
 class Client {
     constructor(hostname) {
         this.hostname = hostname;
+        this.listeners = {};
     }
+
+    on = (type, listener) => {
+        this.listeners[type] = listener;
+    };
 
     connect = () => {
         this.client = new WebSocketClient();
@@ -26,41 +31,27 @@ class Client {
         connection.on("close", () => {
             utils.log("Client", "Connection closed");
         });
-        connection.on("message", this._onMessage);
+        connection.on("message", message => this._onMessage(message, connection));
         this.connection = connection;
     };
 
-    sendBlock = block => {
-        const value = {
-            prevHash: block.prevHash,
-            difficulty: block.difficulty,
-            timestamp: block.timestamp,
-            nonce: block.nonce,
-            txs: block.txs
-        };
-        this._sendMessage("block", value);
+    sendMessage = (type, value) => {
+        if (this.connection.connected) {
+            const data = {
+                type: type,
+                value: value
+            };
+            this.connection.sendUTF(JSON.stringify(data));
+            utils.log("Client", "Sent: " + JSON.stringify(data));
+        }
     };
 
-    sendTx = tx => {
-        const value = {
-            inputs: tx.inputs,
-            outputs: tx.outputs
-        };
-        this._sendMessage("tx", value);
-    };
-
-    _sendMessage = (type, value) => {
-        const data = {
-            type: type,
-            value: value
-        };
-        this.connection.sendUTF(JSON.stringify(data));
-        utils.log("Client", "Sent: " + JSON.stringify(data));
-    };
-
-    _onMessage = message => {
-        const msg = message.utf8Data;
-        utils.log("Client", "Received: " + msg);
+    _onMessage = (message, connection) => {
+        const data = JSON.parse(message.utf8Data);
+        utils.log("Server", "Received: " + message.utf8Data);
+        if (this.listeners[data.type]) {
+            this.listeners[data.type](connection, data.value);
+        }
     };
 }
 
