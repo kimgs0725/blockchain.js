@@ -5,7 +5,6 @@ class Blockchain {
 
     constructor() {
         this.blocks = [Block.GENESIS];
-        this.orphans = [];
     }
 }
 
