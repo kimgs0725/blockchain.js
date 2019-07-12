@@ -131,6 +131,7 @@ class Blockchain {
 
     startMining = () => {
         this.stopMining();
+        utils.log("Blockchain", "Starting mining...");
         this.worker = new Worker("./src/block/MiningWorker.js", {workerData: {blocks: this.blocks}});
         this.worker.on("message", object => {
             const newBlock = Block.from(object);
@@ -148,6 +149,7 @@ class Blockchain {
 
     stopMining = () => {
         if (this.worker) {
+            utils.log("Blockchain", "Stopping mining...");
             this.worker.terminate();
         }
     }
