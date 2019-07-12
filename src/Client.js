@@ -53,7 +53,7 @@ class Client {
                 value: value
             };
             this.connection.sendUTF(JSON.stringify(data));
-            utils.log("Client", "Sent: " + JSON.stringify(data) + "  to " + connection.remoteAddress);
+            utils.log("Client", "Sent: " + JSON.stringify(data) + "  to " + this.connection.remoteAddress);
         }
     };
 }

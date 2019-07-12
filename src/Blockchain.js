@@ -1,5 +1,5 @@
+const {Worker} = require('worker_threads');
 const localIpV4Address = require("local-ipv4-address");
-
 const utils = require("./utils");
 const Bootstrap = require("./Bootstrap");
 const Server = require("./Server");
@@ -19,6 +19,7 @@ class Blockchain {
     constructor() {
         this.blocks = [Blockchain.GENESIS_BLOCK];
         this.initializing = true;
+        this.mining = false;
     }
 
     start = async () => {
@@ -38,12 +39,12 @@ class Blockchain {
     };
 
     _sendMessage = (connection, type, data) => {
-       for (const client of this.clients) {
-           if (client.connection && client.connection.remoteAddress === connection.remoteAddress) {
-               client.sendMessage(type, data);
-               return;
-           }
-       }
+        for (const client of this.clients) {
+            if (client.connection && client.connection.remoteAddress === connection.remoteAddress) {
+                client.sendMessage(type, data);
+                return;
+            }
+        }
     };
 
     _startServer = () => {
@@ -80,13 +81,7 @@ class Blockchain {
         if (this.initializing) {
             if (data.length >= this.blocks) {
                 this.blocks = [];
-                this.blocks.push(new Block(
-                    data.prevHash,
-                    data.merkleRoot,
-                    data.difficulty,
-                    data.timestamp,
-                    data.nonce
-                ));
+                this.blocks.push(Block.from(data));
             }
         }
     };
@@ -115,8 +110,11 @@ class Blockchain {
                             hash: block.hash()
                         });
                     }
-                    this._sendMessage(connectiohn, "getdata", invs);
+                    this._sendMessage(connection, "getdata", invs);
                     this.initializing = false;
+                } else {
+                    this.stopMining();
+                    this.startMining();
                 }
             } else if (this.initializing) {
                 const hash = newBlock.hash();
@@ -128,6 +126,29 @@ class Blockchain {
             }
         }
     };
+
+    startMining = () => {
+        this.stopMining();
+        this.worker = new Worker("./src/block/MiningWorker.js", {workerData: {blocks: this.blocks}});
+        this.worker.on("message", object => {
+            const newBlock = Block.from(object);
+            const blocks = this.blocks;
+            let lastBlock = blocks[blocks.length - 1];
+            if (lastBlock.hash() === newBlock.prevHash) {
+                blocks.push(newBlock);
+                utils.log("Blockchain", "Mined: " + newBlock.hash());
+                for (const client of this.clients) {
+                    client.sendMessage("block", newBlock);
+                }
+            }
+        })
+    };
+
+    stopMining = () => {
+        if (this.worker) {
+            this.worker.terminate();
+        }
+    }
 }
 
 module.exports = Blockchain;

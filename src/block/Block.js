@@ -2,6 +2,10 @@ const Hashes = require("jshashes");
 const utils = require("../utils");
 
 class Block {
+    static from(object) {
+        return new Block(object.prevHash, object.merkleRoot, object.difficulty, object.timestamp, object.nonce, object.txs);
+    }
+
     constructor(prevHash, merkleRoot, difficulty, timestamp, nonce = 0, txs = []) {
         this.prevHash = prevHash;
         this.merkleRoot = merkleRoot;
