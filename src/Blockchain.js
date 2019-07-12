@@ -66,10 +66,17 @@ class Blockchain {
         messenger.sendMessage("headers", headers);
     };
 
-    _onHeaders = (messenger, headers) => {
+    _onHeaders = (messenger, data) => {
         if (this.initializing) {
             if (headers.length >= this.blocks) {
-                this.blocks = headers;
+                this.blocks = [];
+                this.blocks.push(new Block(
+                    data.prevHash,
+                    data.merkleRoot,
+                    data.difficulty,
+                    data.timestamp,
+                    data.nonce
+                ));
             }
         }
     };
@@ -84,7 +91,8 @@ class Blockchain {
         }
     };
 
-    _onBlock = (messenger, newBlock) => {
+    _onBlock = (messenger, data) => {
+        const newBlock = new Block(data.prevHash, data.merkleRoot, data.difficulty, data.timestamp, data.nonce, data.txs);
         if (newBlock.validate()) {
             const lastBlock = this.blocks[this.blocks.length - 1];
             if (lastBlock.hash() === newBlock.prevHash) {
