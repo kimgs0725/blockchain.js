@@ -31,6 +31,3 @@ const Blockchain = require("./Blockchain");
 
 const blockchain = new Blockchain();
 blockchain.start();
-setTimeout(() => {
-    blockchain.startMining();
-}, 3000);

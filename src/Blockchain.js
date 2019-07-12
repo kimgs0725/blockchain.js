@@ -19,7 +19,6 @@ class Blockchain {
     constructor() {
         this.blocks = [Blockchain.GENESIS_BLOCK];
         this.initializing = true;
-        this.mining = false;
     }
 
     start = async () => {
@@ -114,6 +113,8 @@ class Blockchain {
                     }
                     this._sendMessage(connection, "getdata", invs);
                     this.initializing = false;
+                    this.startMining();
+                    utils.log("Blockchain", "Finished downloading headers");
                 } else {
                     this.stopMining();
                     this.startMining();
