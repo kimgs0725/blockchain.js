@@ -28,6 +28,7 @@ class Blockchain {
         const bootstrap = new Bootstrap("http://192.168.35.2");
         const myAddr = await localIpV4Address();
         const ipAddrs = await bootstrap.fetch();
+        utils.log("Blockchain", ipAddrs);
         for (const addr of ipAddrs) {
             if (myAddr !== addr) {
                 const client = this._startClient(addr);
