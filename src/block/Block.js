@@ -40,7 +40,7 @@ class Block {
 
     pow() {
         const difficulty = Buffer.from(this.difficulty, "hex");
-        for (let nonce = 0; nonce < 2 ^ 256 - 1; nonce++) {
+        for (let nonce = 0; nonce <= 2 ^ 32 - 1; nonce++) {
             this.nonce = nonce;
             const hash = this.hash();
             if (Buffer.from(hash, "hex").compare(difficulty) < 0) {

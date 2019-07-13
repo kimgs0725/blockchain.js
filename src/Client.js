@@ -40,7 +40,7 @@ class Client {
 
     _onMessage = message => {
         const data = JSON.parse(message.utf8Data);
-        utils.log("Client", "Received: " + message.utf8Data);
+        utils.log("Client", "Received: " + message.utf8Data + " from " + this.connection.remoteAddress);
         if (this.listeners[data.type]) {
             this.listeners[data.type](this.connection, data.value);
         }

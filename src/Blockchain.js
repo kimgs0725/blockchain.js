@@ -53,7 +53,7 @@ class Blockchain {
         client.on("getdata", this._onGetdata);
         client.on("block", this._onBlock);
         client.on("connected", () => {
-            client.sendMessage("getheaders", "");
+            client.sendMessage("getheaders", null);
         });
         client.connect();
         return client;
@@ -144,7 +144,7 @@ class Blockchain {
             const blocks = this.blocks;
             let lastBlock = blocks[blocks.length - 1];
             if (lastBlock.hash() === newBlock.prevHash) {
-                blocks.push(newBlock);
+                this._addBlock(newBlock);
                 utils.log("Blockchain", "Mined: " + newBlock.hash());
                 for (const client of this.clients) {
                     client.sendMessage("block", newBlock);
