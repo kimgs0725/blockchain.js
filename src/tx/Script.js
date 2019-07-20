@@ -6,6 +6,10 @@ class Script {
     static OP_EQUALVERIFY = "88";
     static OP_CHECKSIG = "ac";
 
+    static from(object) {
+        return new Script(object.values);
+    }
+
     constructor(values = []) {
         this.values = values;
     }

@@ -1,6 +1,11 @@
 const utils = require("../utils");
+const Script = require("./Script");
 
 class Input {
+    static from(object) {
+        return new Input(object.txHash, object.index, Script.from(object.script));
+    }
+
     constructor(txHash, index, script) {
         this.txHash = txHash;
         this.index = index;

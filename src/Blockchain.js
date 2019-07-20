@@ -5,6 +5,8 @@ const Bootstrap = require("./Bootstrap");
 const Server = require("./Server");
 const Client = require("./Client");
 const Block = require("./block/Block");
+const Tx = require("./tx/Tx");
+const MemPool = require("./tx/MemPool");
 
 class Blockchain {
     // 00000ce02084822c48ac519f9e9cce3ed9190014323021f2d4905ad524fe270d
@@ -19,6 +21,7 @@ class Blockchain {
     constructor() {
         this.blocks = [Blockchain.GENESIS_BLOCK];
         this.initializing = true;
+        this.memPool = new MemPool();
     }
 
     start = async () => {
@@ -43,6 +46,7 @@ class Blockchain {
         this.server.on("headers", this._onHeaders);
         this.server.on("getdata", this._onGetdata);
         this.server.on("block", this._onBlock);
+        this.server.on("tx", this._onTx);
         this.server.on("connected", connection => {
             if (!connection.socket.remoteAddress.endsWith("127.0.0.1")) {
                 let addr = connection.socket.remoteAddress;
@@ -64,6 +68,7 @@ class Blockchain {
         client.on("headers", this._onHeaders);
         client.on("getdata", this._onGetdata);
         client.on("block", this._onBlock);
+        client.on("tx", this._onTx);
         client.on("connected", () => {
             client.sendMessage("getheaders", null);
         });
@@ -148,6 +153,13 @@ class Blockchain {
                     }
                 }
             }
+        }
+    };
+
+    _onTx = (connection, data) => {
+        const tx = Tx.from(data);
+        if (tx.validate()) {
+            this.memPool.addTx(tx);
         }
     };
 

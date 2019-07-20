@@ -1,8 +1,23 @@
 const Hashes = require("jshashes");
-const utils = require("../utils");
 const NodeRSA = require("node-rsa");
 
+const Input = require("./Input");
+const Output = require("./Output");
+const utils = require("../utils");
+
 class Tx {
+    static from(object) {
+        const inputs = [];
+        for (const input of object.inputs) {
+            inputs.push(Input.from(input));
+        }
+        const outputs = [];
+        for (const output of object.outputs) {
+            outputs.push(Output.from(output));
+        }
+        return new Tx(inputs, outputs);
+    }
+
     constructor(inputs = [], outputs = []) {
         this.inputs = inputs;
         this.outputs = outputs;

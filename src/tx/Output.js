@@ -1,6 +1,11 @@
 const utils = require("../utils");
+const Script = require("./Script");
 
 class Output {
+    static from(object) {
+        return new Output(object.amount, Script.from(object.script));
+    }
+
     constructor(amount, script) {
         this.amount = amount;
         this.script = script;
