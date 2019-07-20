@@ -1,5 +1,6 @@
 const Hashes = require("jshashes");
 const utils = require("../utils");
+const NodeRSA = require("node-rsa");
 
 class Tx {
     constructor(inputs = [], outputs = []) {
@@ -26,6 +27,20 @@ class Tx {
 
     validate() {
         return true; // TODO: run scripts
+    }
+
+    sign(privateKey) {
+        const key = new NodeRSA();
+        key.importKey(Buffer.from(privateKey, "hex"), "pkcs1-private-der");
+
+        const rawTransaction = this.toHex();
+        const signature = key.sign(Buffer.from(rawTransaction, "hex")).toString("hex");
+        const publicKey = key.exportKey("pkcs8-public-der").toString("hex");
+        for (const input of this.inputs) {
+            input.script.values.push(signature);
+            input.script.values.push(publicKey);
+        }
+        return signature;
     }
 }
 
