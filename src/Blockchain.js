@@ -43,6 +43,18 @@ class Blockchain {
         this.server.on("headers", this._onHeaders);
         this.server.on("getdata", this._onGetdata);
         this.server.on("block", this._onBlock);
+        this.server.on("connected", connection => {
+            if (!connection.socket.remoteAddress.endsWith("127.0.0.1")) {
+                let addr = connection.socket.remoteAddress;
+                if (addr.startsWith("::ffff:")) {
+                    addr = addr.substring(7);
+                }
+                if (!this.clients.find(c => c.hostname.includes(addr))) {
+                    const client = this._startClient(addr);
+                    this.clients.push(client);
+                }
+            }
+        });
         this.server.start();
     };
 
@@ -85,9 +97,13 @@ class Blockchain {
 
     _onHeaders = (connection, data) => {
         if (this.initializing) {
-            if (data.length >= this.blocks) {
+            if (this.blocks.length < data.length) {
+                console.log(data.length);
                 this.blocks = [];
-                this.blocks.push(Block.from(data));
+                for (const header of data) {
+                    const block = Block.from(header);
+                    this.blocks.push(block);
+                }
             }
         }
     };
@@ -95,7 +111,7 @@ class Blockchain {
     _onGetdata = (connection, invs) => {
         for (const inv of invs) {
             for (const block of this.blocks) {
-                if (block.hash === inv.hash) {
+                if (block.hash() === inv.hash) {
                     this._sendMessage(connection, "block", block);
                 }
             }

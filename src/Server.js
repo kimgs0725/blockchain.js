@@ -34,6 +34,9 @@ class Server {
             utils.log("Server", "Connection accepted (" + request.remoteAddress + ")");
             connection.on("message", message => this._onMessage(connection, message));
             connection.on("close", this._onClose);
+            if (this.listeners["connected"]) {
+                this.listeners["connected"](connection);
+            }
         } catch (e) {
             utils.log("Server", "Accept error: " + e.message);
         }
