@@ -14,7 +14,7 @@ class Input {
 
     toHex() {
         let data = this.txHash;
-        data += utils.toHex(this.index);
+        data += utils.toHex(this.index, 8);
         data += this.script.toHex();
         return data;
     }

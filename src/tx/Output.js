@@ -12,7 +12,7 @@ class Output {
     }
 
     toHex() {
-        let data = utils.toHex(this.amount, 16);
+        let data = utils.toHex(this.amount, 8);
         data += this.script.toHex();
         return data;
     }

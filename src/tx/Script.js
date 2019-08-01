@@ -15,11 +15,11 @@ class Script {
     }
 
     toHex() {
-        let data = "";
+        let data = utils.toHex(this.values.length, 8);
         for (const value of this.values) {
             data += value;
         }
-        return utils.toHex(data.length) + data;
+        return data;
     }
 }
 

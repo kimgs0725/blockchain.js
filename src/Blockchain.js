@@ -7,6 +7,12 @@ const Client = require("./Client");
 const Block = require("./block/Block");
 const Tx = require("./tx/Tx");
 const MemPool = require("./tx/MemPool");
+const Input = require("./tx/Input");
+const Output = require("./tx/Output");
+const Script = require("./tx/Script");
+const NodeRSA = require("node-rsa");
+const Hashes = require("jshashes");
+
 
 class Blockchain {
     // 00000ce02084822c48ac519f9e9cce3ed9190014323021f2d4905ad524fe270d
@@ -18,10 +24,13 @@ class Blockchain {
         416337
     );
 
-    constructor() {
+    constructor(privateKey) {
         this.blocks = [Blockchain.GENESIS_BLOCK];
         this.initializing = true;
         this.memPool = new MemPool();
+
+        this.key = new NodeRSA();
+        this.key.importKey(Buffer.from(privateKey, "hex"), "pkcs1-private-der");
     }
 
     start = async () => {
@@ -29,9 +38,9 @@ class Blockchain {
 
         this.clients = [];
         const bootstrap = new Bootstrap("http://192.168.35.2");
-        const myAddr = await localIpV4Address();
-        const ipAddrs = await bootstrap.fetch();
-        utils.log("Blockchain", ipAddrs);
+        const myAddr = await localIpV4Address();  // async한 함수이지만 sync를 맞춰줌.
+        const ipAddrs = await bootstrap.fetch();  // async한 함수이지만 sync를 맞춰줌.
+        // utils.log("Blockchain", ipAddrs);
         for (const addr of ipAddrs) {
             if (myAddr !== addr) {
                 const client = this._startClient(addr);
@@ -40,23 +49,71 @@ class Blockchain {
         }
     };
 
+    startMining = () => {
+        this.stopMining();
+        utils.log("Blockchain", "Starting mining...");
+        const publicKey = this.key.exportKey("pkcs8-public-der").toString("hex");
+        const coinbase = Tx.createCoinbase(publicKey);
+        const txs = [coinbase].concat(this.memPool.getTxs());
+        // Work Thread 생성 (Mining Worker)
+        this.worker = new Worker("./src/block/MiningWorker.js", {
+            workerData:{
+                blocks: this.blocks,
+                txs: txs
+            }
+        });
+        this.worker.on("message", object => {
+            // 마이닝에 성공하면 해당 로직을 수행.
+            const newBlock = Block.from(object);
+            const blocks = this.blocks;
+            let lastBlock = blocks[blocks.length - 1];
+            if (lastBlock.hash() === newBlock.prevHash) {
+                this._addBlock(newBlock);
+                utils.log("Blockchain", "Mined: " + newBlock.hash());
+                for (const client of this.clients) {
+                    client.sendMessage("block", newBlock);
+                }
+            }
+        })
+    };
+
+    stopMining = () => {
+        if (this.worker) {
+            utils.log("Blockchain", "Stopping mining...");
+            this.worker.terminate();
+        }
+    }
+
+    getBalance = () => {
+        const publicKey = this.key.exportKey("pkcs8-public-der").toString("hex");
+        const pubKeyHash = new Hashes.RMD160().hex(new Hashes.SHA256().hex(publicKey));
+        let balance = 0;
+        for (const tx of this.memPool.getTxs()) {
+            for (const output of tx.outputs) {
+                for (const value of output.script.values) {
+                    if (value === pubKeyHash) {
+                        balance += output.amount;
+                    }
+                }
+            }
+        }
+        return balance;
+    };
+
     _startServer = () => {
         this.server = new Server();
         this.server.on("getheaders", this._onGetheaders);
         this.server.on("headers", this._onHeaders);
         this.server.on("getdata", this._onGetdata);
         this.server.on("block", this._onBlock);
-        this.server.on("tx", this._onTx);
         this.server.on("connected", connection => {
             if (!connection.socket.remoteAddress.endsWith("127.0.0.1")) {
                 let addr = connection.socket.remoteAddress;
                 if (addr.startsWith("::ffff:")) {
                     addr = addr.substring(7);
                 }
-                if (!this.clients.find(c => c.hostname.includes(addr))) {
-                    const client = this._startClient(addr);
-                    this.clients.push(client);
-                }
+                const client = this._startClient(addr);
+                this.clients.push(client);
             }
         });
         this.server.start();
@@ -68,9 +125,15 @@ class Blockchain {
         client.on("headers", this._onHeaders);
         client.on("getdata", this._onGetdata);
         client.on("block", this._onBlock);
-        client.on("tx", this._onTx);
         client.on("connected", () => {
             client.sendMessage("getheaders", null);
+            setTimeout(() => {
+                const inputs = [new Input("0000000000000000000000000000000000000000000000000000000000000000",
+                                          0, new Script())];
+                const outputs = [new Output(100, new Script([Script.OP_DUP, Script.OP_HASH160, "0000000000000000000000000000000000000000000000000000000000000000", Script.OP_EQUALVERIFY, Script.OP_CHECKSIG]))];
+                const tx = new Tx(inputs, outputs);
+                client.sendMessage("tx", tx);
+            })
         });
         client.connect();
         return client;
@@ -83,12 +146,18 @@ class Blockchain {
                 value: value
             };
             connection.sendUTF(JSON.stringify(data));
-            utils.log("Server", "Sent: " + JSON.stringify(data) + "  to " + connection.remoteAddress);
+            // utils.log("Server", "Sent: " + JSON.stringify(data) + "  to " + connection.remoteAddress);
         }
     };
 
     _addBlock = block => {
         this.blocks.push(block);
+        for (const tx of block.txs) {
+            for (const input of tx.inputs) {
+                this.memPool.removeTx(input.txHash);
+            }
+            this.memPool.addTx(tx);
+        }
         utils.log("Blockchain", "Block Height: " + this.blocks.length);
     };
 
@@ -102,8 +171,8 @@ class Blockchain {
 
     _onHeaders = (connection, data) => {
         if (this.initializing) {
-            if (this.blocks.length < data.length) {
-                console.log(data.length);
+            const isValid = data.map(Block.from).every(header => header.validate());
+            if (isValid && this.blocks.length < data.length) {
                 this.blocks = [];
                 for (const header of data) {
                     const block = Block.from(header);
@@ -125,11 +194,14 @@ class Blockchain {
 
     _onBlock = (connection, data) => {
         const newBlock = Block.from(data);
-        if (newBlock.validate()) {
+        if (newBlock.validate(this.memPool)) {
             const lastBlock = this.blocks[this.blocks.length - 1];
             if (lastBlock.hash() === newBlock.prevHash) {
                 this._addBlock(newBlock);
                 if (this.initializing) {
+                    // 마지막 블록의 해쉬와 새로 들어온 블록의 prevHash와 동일하면
+                    // 더 이상 헤더 동기화를 할 필요가 없기 때문에 본격적으로
+                    // 마이닝에 참여
                     this.initializing = false;
                     utils.log("Blockchain", "Finished downloading headers");
                     const invs = [];
@@ -139,6 +211,7 @@ class Blockchain {
                             hash: block.hash()
                         });
                     }
+                    // 어! 나 헤더 동기화 끝났으니 이 블록헤더에 해당하는 블록 좀 줄래?
                     this._sendMessage(connection, "getdata", invs);
                     this.startMining();
                 } else {
@@ -153,40 +226,23 @@ class Blockchain {
                     }
                 }
             }
+            // 블록동기화하는 부분이 빠진것 같다...
         }
     };
 
     _onTx = (connection, data) => {
         const tx = Tx.from(data);
-        if (tx.validate()) {
+        if (tx.validate(this.memPool)) {
             this.memPool.addTx(tx);
         }
-    };
-
-    startMining = () => {
-        this.stopMining();
-        utils.log("Blockchain", "Starting mining...");
-        this.worker = new Worker("./src/block/MiningWorker.js", {workerData: {blocks: this.blocks}});
-        this.worker.on("message", object => {
-            const newBlock = Block.from(object);
-            const blocks = this.blocks;
-            let lastBlock = blocks[blocks.length - 1];
-            if (lastBlock.hash() === newBlock.prevHash) {
-                this._addBlock(newBlock);
-                utils.log("Blockchain", "Mined: " + newBlock.hash());
-                for (const client of this.clients) {
-                    client.sendMessage("block", newBlock);
-                }
-            }
-        })
-    };
-
-    stopMining = () => {
         if (this.worker) {
-            utils.log("Blockchain", "Stopping mining...");
-            this.worker.terminate();
+            const publicKey = this.key.exportKey("pkcs8-publicder").toString("hex");
+            const coinbase = Tx.createCoinbase(publicKey);
+            const txs = [coinbase].concat(this.memPool.getTxs());
+            this.worker.postMessage(txs);
         }
-    }
+    };
+
 }
 
 module.exports = Blockchain;

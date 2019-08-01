@@ -1,12 +1,20 @@
 const Hashes = require("jshashes");
 const utils = require("../utils");
-
+const Tx = require("../tx/Tx");
+const MerkleTree = require('@garbados/merkle-tree');
 class Block {
     static from(object) {
-        return new Block(object.prevHash, object.merkleRoot, object.difficulty, object.timestamp, object.nonce, object.txs);
+        const txs = [];
+        for (const tx of object.txs) {
+            txs.push(Tx.from(tx));
+        }
+        return new Block(object.prevHash, object.merkleRoot,object.difficulty, object.timestamp, object.nonce, txs);
     }
 
-    constructor(prevHash, merkleRoot, difficulty, timestamp, nonce = 0, txs = []) {
+    constructor(prevHash = "0000000000000000000000000000000000000000000000000000000000000000",
+                merkleRoot = "0000000000000000000000000000000000000000000000000000000000000000", 
+                difficulty = "00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 
+                timestamp = 0, nonce = 0, txs = []) {
         this.prevHash = prevHash;
         this.merkleRoot = merkleRoot;
         this.difficulty = difficulty;
@@ -49,10 +57,51 @@ class Block {
         }
     }
 
-    validate() {
+    validate(memPool) {
+        // const hash = this.hash();
+        // const difficulty = Buffer.from(this.difficulty, "hex");
+        // return Buffer.from(hash, "hex").compare(difficulty) < 0;
+        // TODO: validate txs
         const hash = this.hash();
         const difficulty = Buffer.from(this.difficulty, "hex");
-        return Buffer.from(hash, "hex").compare(difficulty) < 0; // TODO: validate txs
+        if (Buffer.from(hash, "hex").compare(difficulty) < 0) {
+            // Verify coinbase
+            const coinbase = this.txs[0];
+            if (!coinbase) 
+                return false;
+
+            if (coinbase.inputs.length !== 1)
+                return false;
+
+            if (coinbase.inputs[0].txHash !== "0000000000000000000000000000000000000000000000000000000000000000" ||
+                coinbase.inputs[0].index !== -1)
+                return false;
+
+            if (coinbase.outputs.length !== 1)
+                return false;
+
+            if (coinbase.outputs[0].amount != 50 * 10 ** 8)
+                return false;
+
+            // Verify merkle tree
+            const txData = [];
+            for (const tx of this.txs) {
+                txData.push(Tx.from(tx).toHex());
+            }
+            const merkleTree = new MerkleTree("sha256", txData);
+            if (this.merkleRoot !== merkleTree.root)
+                return false;
+
+            // Verify txs
+            for (const tx of this.txs) {
+                if (!tx.validate(memPool)) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 

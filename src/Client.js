@@ -15,7 +15,7 @@ class Client {
         this.client = new WebSocketClient();
         this.client.on("connectFailed", error => {
             this.connection = null;
-            utils.log("Client", "Connection Error: " + error.toString());
+            // utils.log("Client", "Connection Error: " + error.toString());
         });
 
         this.client.on("connect", this._onConnect);
@@ -24,12 +24,12 @@ class Client {
     };
 
     _onConnect = connection => {
-        utils.log("Client", "Connected (" + connection.remoteAddress + ")");
+        // utils.log("Client", "Connected (" + connection.remoteAddress + ")");
         connection.on("error", (error) => {
-            utils.log("Client", "Error: " + error.toString());
+            // utils.log("Client", "Error: " + error.toString());
         });
         connection.on("close", () => {
-            utils.log("Client", "Connection closed");
+            // utils.log("Client", "Connection closed");
         });
         connection.on("message", this._onMessage);
         this.connection = connection;
@@ -40,7 +40,7 @@ class Client {
 
     _onMessage = message => {
         const data = JSON.parse(message.utf8Data);
-        utils.log("Client", "Received: " + message.utf8Data + " from " + this.connection.remoteAddress);
+        // utils.log("Client", "Received: " + message.utf8Data + " from " + this.connection.remoteAddress);
         if (this.listeners[data.type]) {
             this.listeners[data.type](this.connection, data.value);
         }
@@ -53,7 +53,7 @@ class Client {
                 value: value
             };
             this.connection.sendUTF(JSON.stringify(data));
-            utils.log("Client", "Sent: " + JSON.stringify(data) + "  to " + this.connection.remoteAddress);
+            // utils.log("Client", "Sent: " + JSON.stringify(data) + "  to " + this.connection.remoteAddress);
         }
     };
 }

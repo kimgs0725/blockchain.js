@@ -3,6 +3,8 @@ const NodeRSA = require("node-rsa");
 
 const Input = require("./Input");
 const Output = require("./Output");
+const Script = require("./Script");
+const ScriptRunner = require("./ScriptRunner");
 const utils = require("../utils");
 
 class Tx {
@@ -18,6 +20,13 @@ class Tx {
         return new Tx(inputs, outputs);
     }
 
+    static createCoinbase(publicKey) {
+        const pubKeyHash = new Hashes.RMD160().hex(new Hashes.SHA256().hex(publicKey));
+        const input = new Input("0000000000000000000000000000000000000000000000000000000000000000", -1, new Script([utils.toHex(new Date().getTime(), 8)]));
+        const output = new Output(50 * 10 ** 8, new Script([Script.OP_DUP, Script.OP_HASH160, pubKeyHash, Script.OP_EQUALVERIFY, Script.OP_CHECKSIG]));
+        return new Tx([input], [output]);
+    }
+
     constructor(inputs = [], outputs = []) {
         this.inputs = inputs;
         this.outputs = outputs;
@@ -25,11 +34,11 @@ class Tx {
 
     toHex() {
         let data = "";
-        data += utils.toHex(this.inputs.length);
+        data += utils.toHex(this.inputs.length, 8);
         for (const input of this.inputs) {
             data += input.toHex();
         }
-        data += utils.toHex(this.outputs.length);
+        data += utils.toHex(this.outputs.length, 8);
         for (const output of this.outputs) {
             data += output.toHex();
         }
@@ -37,11 +46,23 @@ class Tx {
     }
 
     hash() {
+        console.log(this.toHex());
         return new Hashes.SHA256().hex(this.toHex());
     }
 
-    validate() {
-        return true; // TODO: run scripts
+    validate(memPool) {
+        for (const input of this.inputs) {
+            const tx = memPool.txs[input.txHash];
+            if (!tx)
+                return false;
+            const utxo = tx.outputs[input.index];
+            if (!utxo)
+                return false;
+            const runner = new ScriptRunner(utxo, input, this);
+            if (runner.run() === false)
+                return false;
+        }
+        return true;
     }
 
     sign(privateKey) {
