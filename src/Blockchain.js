@@ -40,7 +40,7 @@ class Blockchain {
         const bootstrap = new Bootstrap("http://192.168.35.2");
         const myAddr = await localIpV4Address();  // async한 함수이지만 sync를 맞춰줌.
         const ipAddrs = await bootstrap.fetch();  // async한 함수이지만 sync를 맞춰줌.
-        // utils.log("Blockchain", ipAddrs);
+        utils.log("Blockchain", ipAddrs);
         for (const addr of ipAddrs) {
             if (myAddr !== addr) {
                 const client = this._startClient(addr);
@@ -146,7 +146,7 @@ class Blockchain {
                 value: value
             };
             connection.sendUTF(JSON.stringify(data));
-            // utils.log("Server", "Sent: " + JSON.stringify(data) + "  to " + connection.remoteAddress);
+            utils.log("Server", "Sent: " + JSON.stringify(data) + "  to " + connection.remoteAddress);
         }
     };
 
