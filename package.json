@@ -5,7 +5,7 @@
     "@garbados/merkle-tree": "^1.0.3-alpha",
     "jshashes": "^1.0.7",
     "local-ipv4-address": "0.0.2",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.1",
     "node-rsa": "^1.0.5",
     "readline-sync": "^1.4.9",
     "websocket": "^1.0.29"
